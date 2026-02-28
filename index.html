@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payroll Converter | Back-House</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <div class="app-title">
+        <h1>Square &rarr; ADP</h1>
+        <p class="subtitle">Payroll Format Converter</p>
+      </div>
+      <div class="logo">
+        <img src="Back-House5.png" alt="Back-House" class="logo-img">
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+
+      <!-- ── STEP 1 ─────────────────────────────────────── -->
+      <section class="card">
+        <h2><span class="step-num">1</span> Pay Period Setup</h2>
+
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label for="restaurant">Restaurant</label>
+            <select id="restaurant" class="select-input">
+              <option value="">Select a restaurant…</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="location-group">
+            <label for="location">Location</label>
+            <select id="location" class="select-input" disabled>
+              <option value="">Select a location…</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="weekStart">Week Start Date</label>
+            <input type="date" id="weekStart" class="date-input">
+            <span class="input-hint">Mondays only — maps to Pay Period Start</span>
+            <div id="date-error" class="field-error hidden">Please select a Monday.</div>
+          </div>
+
+          <div class="form-group" id="week-end-display" style="display:none">
+            <label>Pay Period End (auto)</label>
+            <div class="date-display" id="weekEndDate">—</div>
+            <span class="input-hint">Always the Sunday of the selected week</span>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── STEP 2 ─────────────────────────────────────── -->
+      <section class="card">
+        <h2><span class="step-num">2</span> Upload Files</h2>
+
+        <div class="upload-grid">
+
+          <div class="upload-zone" id="square-zone">
+            <button class="remove-file-btn" id="square-remove" aria-label="Remove file">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <input type="file" id="squareFile" accept=".csv" hidden>
+            <label for="squareFile" class="upload-label">
+              <div class="upload-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="12" y1="18" x2="12" y2="12"/>
+                  <line x1="9" y1="15" x2="15" y2="15"/>
+                </svg>
+              </div>
+              <div class="upload-title">Square Export</div>
+              <div class="upload-sub">CSV file downloaded from Square</div>
+              <div class="upload-sub" style="margin-top:4px; font-size:0.7rem">Drag &amp; drop or click to browse · .csv</div>
+            </label>
+            <div id="square-status" class="file-status" style="display:none"></div>
+          </div>
+
+          <div class="upload-zone" id="tips-zone">
+            <button class="remove-file-btn" id="tips-remove" aria-label="Remove file">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <input type="file" id="tipsFile" accept=".csv,.xlsx,.xls" hidden>
+            <label for="tipsFile" class="upload-label">
+              <div class="upload-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="5" width="20" height="14" rx="2"/>
+                  <line x1="2" y1="10" x2="22" y2="10"/>
+                </svg>
+              </div>
+              <div class="upload-title">Tips File <span class="optional-badge">Optional</span></div>
+              <div class="upload-sub">CSV or Excel — matched by employee name</div>
+              <div class="upload-sub" style="margin-top:4px; font-size:0.7rem">Drag &amp; drop or click to browse · .csv .xlsx</div>
+            </label>
+            <div id="tips-status" class="file-status" style="display:none"></div>
+          </div>
+
+        </div>
+
+        <!-- tips column mapper (shown after upload) -->
+        <div id="tips-col-mapper" class="col-mapper hidden">
+          <p class="col-mapper-label">Tips file columns detected — verify mapping:</p>
+          <div class="col-mapper-grid">
+            <div class="col-map-row">
+              <span>Employee Name</span>
+              <select id="col-name" class="select-sm"></select>
+            </div>
+            <div class="col-map-row">
+              <span>Tip Amount</span>
+              <select id="col-amount" class="select-sm"></select>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ── PROCESS ──────────────────────────────────────── -->
+      <div class="action-row">
+        <button id="processBtn" class="btn-primary" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          Generate ADP File
+        </button>
+      </div>
+
+      <!-- ── RESULTS ──────────────────────────────────────── -->
+      <section class="card" id="results-section" style="display:none">
+        <h2><span class="step-num">3</span> Results</h2>
+        <div id="validation-results"></div>
+        <div class="action-row" style="margin-top:1.75rem">
+          <button id="downloadBtn" class="btn-primary btn-download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download ADP Import File
+          </button>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- External libs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>

@@ -553,3 +553,211 @@ main {
   border-top: 1px solid var(--border);
   border-radius: 0 0 7px 7px;
 }
+
+/* ============================================================
+   ADMIN PANEL
+   ============================================================ */
+
+/* Trigger button — fixed bottom-right, subtle magnifying glass */
+.admin-trigger {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.18;
+  transition: opacity .2s;
+  padding: 0;
+  z-index: 200;
+}
+.admin-trigger:hover { opacity: 0.6; }
+/* Magnifying glass drawn with CSS */
+.admin-trigger::before {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 16px;
+  border: 2.5px solid var(--text-1);
+  border-radius: 50%;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+}
+.admin-trigger::after {
+  content: '';
+  display: block;
+  width: 2.5px;
+  height: 11px;
+  background: var(--text-1);
+  position: absolute;
+  bottom: 3px;
+  right: 6px;
+  transform: rotate(-45deg);
+  transform-origin: top center;
+  border-radius: 2px;
+}
+
+/* Modal overlay */
+.admin-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  padding: 1rem;
+}
+.admin-overlay.hidden { display: none !important; }
+
+/* Modal box */
+.admin-modal {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 40px rgba(0,0,0,.22);
+  padding: 2rem;
+  width: 100%;
+  max-width: 480px;
+}
+.admin-modal-sm { max-width: 340px; }
+
+.admin-modal-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: .5rem;
+}
+.admin-modal-sub {
+  font-size: .78rem;
+  color: var(--text-2);
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+}
+
+/* Form rows inside admin modal */
+.admin-form { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.25rem; }
+.admin-form-row { display: flex; flex-direction: column; gap: .3rem; }
+.admin-label {
+  font-size: .72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-2);
+}
+
+/* Password input */
+.admin-pw-input {
+  width: 100%;
+  padding: .55rem .85rem;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-size: .93rem;
+  font-family: inherit;
+  margin-top: .75rem;
+  margin-bottom: .5rem;
+  outline: none;
+}
+.admin-pw-input:focus { border-color: var(--brand); }
+.admin-pw-error {
+  font-size: .76rem;
+  color: var(--err);
+  margin-bottom: .5rem;
+}
+
+/* File picker row */
+.admin-file-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+.admin-file-btn {
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.admin-file-name {
+  font-size: .8rem;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Parse result area */
+#admin-parse-result { margin-bottom: 1.25rem; }
+.admin-parse-ok {
+  background: var(--success-bg);
+  border: 1px solid var(--success-bdr);
+  border-radius: 8px;
+  padding: .85rem 1rem;
+  font-size: .82rem;
+  color: var(--success);
+}
+.admin-parse-ok .admin-parse-title { font-weight: 700; margin-bottom: .35rem; }
+.admin-parse-ok .admin-parse-note  { margin-top: .45rem; color: var(--text-2); }
+.admin-parse-error {
+  background: var(--err-bg);
+  border: 1px solid var(--err-bdr);
+  border-radius: 8px;
+  padding: .85rem 1rem;
+  font-size: .82rem;
+  color: var(--err);
+}
+
+/* Footer buttons */
+.admin-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: .6rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.admin-modal-footer-split { justify-content: space-between; align-items: center; }
+.admin-footer-right { display: flex; gap: .6rem; }
+
+.admin-btn-primary {
+  padding: .52rem 1.2rem;
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: .85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background .15s;
+}
+.admin-btn-primary:hover:not(:disabled) { background: var(--brand-hover); }
+.admin-btn-primary:disabled { opacity: .38; cursor: not-allowed; }
+
+.admin-btn-secondary {
+  padding: .52rem 1.2rem;
+  background: var(--surface);
+  color: var(--text-1);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-size: .85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.admin-btn-secondary:hover { border-color: var(--brand); background: var(--bg); }
+
+.admin-btn-danger {
+  padding: .52rem 1rem;
+  background: transparent;
+  color: var(--err);
+  border: 1.5px solid var(--err-bdr);
+  border-radius: 6px;
+  font-size: .8rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background .15s;
+}
+.admin-btn-danger:hover { background: var(--err-bg); }

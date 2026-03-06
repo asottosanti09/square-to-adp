@@ -154,6 +154,56 @@
     </div>
   </main>
 
+  <!-- Admin: magnifying glass trigger (fixed, bottom-right) -->
+  <button id="admin-trigger" class="admin-trigger" aria-label="Admin panel" title="Admin panel"></button>
+
+  <!-- Admin: password gate -->
+  <div id="admin-pw-overlay" class="admin-overlay hidden">
+    <div class="admin-modal admin-modal-sm">
+      <h3 class="admin-modal-title">Admin Access</h3>
+      <input type="password" id="admin-pw-input" class="admin-pw-input" placeholder="Password" autocomplete="off">
+      <div id="admin-pw-error" class="admin-pw-error hidden">Incorrect password.</div>
+      <div class="admin-modal-footer">
+        <button id="admin-pw-cancel" class="admin-btn-secondary">Cancel</button>
+        <button id="admin-pw-submit" class="admin-btn-primary">Unlock</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin: main panel -->
+  <div id="admin-overlay" class="admin-overlay hidden">
+    <div class="admin-modal">
+      <h3 class="admin-modal-title">Update Employee Code Mapping</h3>
+      <p class="admin-modal-sub">Upload a CSV or Excel employee code file to override the built-in mapping for a restaurant. The file should match the ADP employee list format (columns: Employee, Employee Code, Location).</p>
+
+      <div class="admin-form">
+        <div class="admin-form-row">
+          <label class="admin-label" for="admin-restaurant">Restaurant</label>
+          <select id="admin-restaurant" class="select-input"></select>
+        </div>
+
+        <div class="admin-form-row">
+          <label class="admin-label">File</label>
+          <div class="admin-file-row">
+            <label for="admin-file" class="admin-btn-secondary admin-file-btn">Choose file&hellip;</label>
+            <input type="file" id="admin-file" accept=".csv,.xlsx,.xls" hidden>
+            <span id="admin-file-name" class="admin-file-name">No file chosen</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="admin-parse-result" class="hidden"></div>
+
+      <div class="admin-modal-footer admin-modal-footer-split">
+        <button id="admin-reset-btn" class="admin-btn-danger">Reset to defaults</button>
+        <div class="admin-footer-right">
+          <button id="admin-cancel-btn" class="admin-btn-secondary">Close</button>
+          <button id="admin-save-btn" class="admin-btn-primary" disabled>Save &amp; Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- External libs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>

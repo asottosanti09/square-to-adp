@@ -15,14 +15,11 @@ const RESTAURANTS = [
   {
     name: 'Court Street Grocers',
     locations: [
-      { name: 'Greenwich Village',   adpIid: '' },
-      { name: 'Williamsburg',        adpIid: '' },
-      { name: 'Carroll Gardens',     adpIid: '' },
-      { name: 'Midtown',             adpIid: '' },
-      { name: 'Northside',           adpIid: '30264633' },
-      { name: 'Starship',            adpIid: '30256821' },
-      { name: 'Finkelstein & Ross',  adpIid: '30257633' },
       { name: 'LaGuardia Place',     adpIid: '30256751' },
+      { name: 'Northside',           adpIid: '30264633' },
+      { name: 'Finkelstein & Ross',  adpIid: '30257633' },
+      { name: 'Midtown',             adpIid: '' },
+      { name: 'Starship',            adpIid: '30256821' },
       { name: 'Commissary',          adpIid: '30256765' }
     ]
   },

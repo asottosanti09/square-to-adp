@@ -27,163 +27,210 @@ const RESTAURANTS = [
   { name: 'S&P Lunch',   adpIid: '30256821' }
 ];
 
-const PAY_FREQUENCY    = 'W';
-const RATE_CODE        = 'BASE';
+const PAY_FREQUENCY = 'W';
+const RATE_CODE     = 'BASE';
+const SPREAD_HOUR_RATE = 17;
 
 // ================================================================
-// EMPLOYEE CODE LOOKUP (per restaurant × location)
-// Populated from hardcoded defaults; admin panel can override via localStorage.
-// Keys are normalized "firstname lastname" strings.
+// NICKNAME MATCHING
+// Each group lists all equivalent forms of a first name.
 // ================================================================
-let EMP_CODE_OVERRIDES = (() => {
-  try {
-    const s = localStorage.getItem('adp_emp_codes');
-    if (s) return JSON.parse(s);
-  } catch (_) {}
-  return buildDefaultEmpCodes();
+const NICKNAME_GROUPS = [
+  ['elizabeth', 'liz', 'lizzy', 'beth', 'eliza', 'betty', 'bette', 'elise', 'lisa'],
+  ['robert',    'bob', 'bobby', 'rob', 'robby', 'robbie'],
+  ['william',   'bill', 'billy', 'will', 'willie', 'willy', 'liam'],
+  ['james',     'jim', 'jimmy', 'jamie'],
+  ['john',      'johnny', 'jack'],
+  ['joseph',    'joe', 'joey'],
+  ['michael',   'mike', 'mikey', 'mick', 'mickey'],
+  ['nicholas',  'nick', 'nico', 'nicky'],
+  ['thomas',    'tom', 'tommy'],
+  ['susan',     'sue', 'susie', 'suzy'],
+  ['jennifer',  'jen', 'jenny', 'jenn'],
+  ['katherine', 'kate', 'katie', 'kathy', 'cathy', 'kat', 'kathryn'],
+  ['daniel',    'dan', 'danny'],
+  ['richard',   'rich', 'rick', 'ricky', 'dick'],
+  ['christopher', 'chris'],
+  ['alexander', 'alex', 'alec', 'al', 'xander'],
+  ['matthew',   'matt', 'matty'],
+  ['patricia',  'pat', 'patty', 'trish', 'tricia'],
+  ['david',     'dave', 'davy'],
+  ['stephen',   'steve', 'steven', 'stevie'],
+  ['edward',    'ed', 'eddie', 'ned', 'ted', 'teddy'],
+  ['charles',   'charlie', 'chuck', 'chaz'],
+  ['donald',    'don', 'donnie'],
+  ['ronald',    'ron', 'ronnie'],
+  ['anthony',   'tony'],
+  ['andrew',    'andy', 'drew'],
+  ['samuel',    'sam', 'sammy'],
+  ['samantha',  'sam', 'sammy', 'sami'],
+  ['benjamin',  'ben', 'benny', 'benji'],
+  ['kenneth',   'ken', 'kenny'],
+  ['leonard',   'len', 'lenny'],
+  ['frederick', 'fred', 'freddy', 'freddie'],
+  ['gregory',   'greg', 'gregg'],
+  ['jeffrey',   'jeff', 'geoff'],
+  ['timothy',   'tim', 'timmy'],
+  ['vincent',   'vince', 'vinnie', 'vin'],
+  ['henry',     'hank'],
+  ['margaret',  'peg', 'peggy', 'meg', 'maggie', 'marge'],
+  ['theresa',   'tess', 'terry', 'terri', 'tessa'],
+  ['rebecca',   'becky', 'becca'],
+  ['barbara',   'barb', 'babs'],
+  ['deborah',   'deb', 'debbie'],
+  ['pamela',    'pam'],
+  ['sarah',     'sally', 'sara'],
+  ['sandra',    'sandy', 'sandi'],
+  ['laura',     'lori', 'laurie'],
+  ['judith',    'judy'],
+  ['gerald',    'jerry', 'gerry'],
+  ['raymond',   'ray'],
+  ['lawrence',  'larry'],
+  ['jessica',   'jess', 'jessie'],
+  ['jonathan',  'jon', 'jonny'],
+  ['madeline',  'maddie', 'maddy'],
+  ['stephanie', 'steph'],
+  ['theodore',  'ted', 'theo', 'teddy'],
+  ['walter',    'walt', 'wally'],
+  ['arthur',    'art', 'artie'],
+  ['peter',     'pete'],
+  ['albert',    'al', 'bert'],
+  ['alfred',    'al', 'fred', 'alfie'],
+  ['anne',      'ann', 'anna', 'annie'],
+  ['eleanor',   'ellie', 'ella', 'nell', 'nelly'],
+  ['emily',     'em', 'emmy'],
+  ['eugene',    'gene'],
+  ['helen',     'ellie', 'nell'],
+  ['irving',    'irv'],
+  ['reginald',  'reg', 'reggie'],
+  ['sophia',    'sophie'],
+  ['victoria',  'vicky', 'vickie', 'tori'],
+  ['nathaniel', 'nate', 'nat'],
+  ['philip',    'phil', 'phillip'],
+  ['randolph',  'randy'],
+  ['stanley',   'stan'],
+  ['louis',     'lou', 'louie'],
+  ['carolyn',   'carol', 'carrie'],
+  ['dorothy',   'dot', 'dottie'],
+  ['francis',   'frank', 'frankie'],
+  ['frank',     'frankie'],
+  ['george',    'georgie'],
+  ['kathleen',  'kathy', 'kate', 'kat'],
+  ['mark',      'marc'],
+  ['nancy',     'nan'],
+  ['natalie',   'nat', 'nattie'],
+  ['grace',     'gracie'],
+  ['claire',    'clara', 'clare'],
+];
+
+// Build a map: normalised first name → array of all names in its group
+const NICKNAME_MAP = (() => {
+  const map = {};
+  NICKNAME_GROUPS.forEach(group => {
+    group.forEach(name => {
+      if (!map[name]) map[name] = [];
+      group.forEach(eq => { if (!map[name].includes(eq)) map[name].push(eq); });
+    });
+  });
+  return map;
 })();
 
-function buildDefaultEmpCodes() {
-  return {
-    "L'industrie Pizzeria": {
-      'Brooklyn': {
-        'alex ackerman':              '51',
-        'gilbero angeles macario':    '42',
-        'nicholas baglivo':           '6',
-        'jacob berg':                 '43',
-        'oswald cabrera':             '41',
-        'elijah coleman':             '17',
-        'carlos hermenegildo cuyuch': '22',
-        'michael j encarnacion':      '29',
-        'tara fdaee':                 '47',
-        'bernadette fowler':          '34',
-        'g marziali llc':             '15',
-        'jonathan galan':             '28',
-        'fidel moreno german':        '16',
-        'shane gordon':               '38',
-        'imayah hawkins':             '30',
-        'shane hawley':               '45',
-        'elvis estuardo itzep':       '39',
-        'manuel d jimenez':           '24',
-        'kelly kleiner':              '37',
-        'jonathan klink':             '21',
-        'chloe kolbenheyer':          '46',
-        'massimo laveglia':           '23',
-        'stephanie j levy':           '26',
-        'keneth lopez':               '44',
-        'mario a lopez':              '25',
-        'theodore maurisseau':        '9',
-        'musa mukadam':               '10',
-        'noah murphy':                '35',
-        'danny noel cumatz tuy':      '11',
-        'ricardo odne':               '8',
-        'wendelline pagan':           '1',
-        'daniel l pearlman':          '40',
-        'gabriella pecoraro':         '14',
-        'mauricio perez lopez':       '20',
-        'romeo itzep perez':          '31',
-        'jean fritz petit':           '4',
-        'samuel c plimsoll':          '5',
-        'carlos pozos':               '33',
-        'freddy puebla rivera':       '7',
-        'cole rabedeau':              '2',
-        'gerard r renny':             '3',
-        'saidhbh ryan':               '36',
-        'alfonso soberanes':          '12',
-        'melannie soto':              '19',
-        'alec sottosanti':            '48',
-        'johnny torres':              '18',
-        'oscar utuy':                 '32',
-        'jose vargas':                '13',
-        'vincent m vasquez-sponsler': '27',
-        'adam velazquez':             '50'
-      },
-      'West Village': {
-        'kevin abac':                  '19',
-        'blasfel arana aponte':        '2',
-        'jaziel bautista':             '20',
-        'josafat ariel bautista':      '21',
-        'dylan bonacore':              '3',
-        'christopher bucello':         '4',
-        'jenna caruso':                '5',
-        'amancio castillo':            '22',
-        'moises chacaj':               '23',
-        'christopher cunningham':      '24',
-        'burhan demirci':              '39',
-        'wendy esteban mendez':        '6',
-        'isabella fink':               '41',
-        'jonathan galan':              '18',
-        'morgan gibson':               '25',
-        'ricardo gonzalez':            '26',
-        'jackson graham':              '7',
-        'imayah hawkins':              '45',
-        'mason henning':               '8',
-        'david hernandez':             '42',
-        'jimy higa rodriguez':         '27',
-        'nelson itzep perez':          '28',
-        'alex jeronimo':               '29',
-        'manuel jimenez':              '1',
-        'walker jones':                '30',
-        'constantinos lekas':          '31',
-        'gabriel levin':               '9',
-        'stephanie levy':              '43',
-        'marziali g llc':              '46',
-        'sergio lopez':                '32',
-        'avelino martinez de jesus':   '10',
-        'jose manuel moreno':          '33',
-        'marino neri':                 '11',
-        'agustin pantoja salazar':     '34',
-        'gabriella pecoraro':          '47',
-        'lucrecia perez':              '12',
-        'pablo perez':                 '35',
-        'samuel plimsoll':             '48',
-        'cole rabedeau':               '44',
-        'grace robins somerville':     '36',
-        'fernando rodriguez':          '38',
-        'joel rodriguez':              '40',
-        'diego rossi':                 '13',
-        'adulfo sebastian':            '14',
-        'alfonso soberanes':           '49',
-        'cecilia tecuanhuey':          '16',
-        'geovany vicente xiloj':       '37',
-        'stephanie webbermissey':      '17'
-      }
-    }
-  };
+// Returns true if two first-name strings are equivalent (exact or nickname match)
+function firstNamesMatch(a, b) {
+  a = (a || '').toLowerCase().trim();
+  b = (b || '').toLowerCase().trim();
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const groupA = NICKNAME_MAP[a] || [a];
+  const groupB = NICKNAME_MAP[b] || [b];
+  return groupA.some(n => groupB.includes(n));
 }
 
-// Parse "Last, First" (ADP format) → normalized "first last" key
+// ================================================================
+// EMPLOYEE CODE LOOKUP (from uploaded ADP codes file)
+// ================================================================
+
+// empCodesList: [{nameKey: "first last", code: "42"}, ...]
+// Returns the code string or null if not found.
+function lookupEmpCodeFromList(empCodesList, firstName, lastName) {
+  if (!empCodesList || empCodesList.length === 0) return null;
+
+  const sqFirst = normalizeName(firstName);
+  const sqLast  = normalizeName(lastName);
+  const key1 = `${sqFirst} ${sqLast}`.trim();
+  const key2 = `${sqLast} ${sqFirst}`.trim();
+
+  // 1. Exact full-name match
+  for (const entry of empCodesList) {
+    if (entry.nameKey === key1 || entry.nameKey === key2) return entry.code;
+  }
+
+  // 2. Last-name exact + first-name nickname-expanded match
+  if (sqFirst && sqLast) {
+    for (const entry of empCodesList) {
+      const parts = entry.nameKey.split(' ');
+      if (parts.length < 2) continue;
+
+      // Treat as "first [middle] last" — compare last token as last name
+      const adpFirst = parts[0];
+      const adpLast  = parts.slice(1).join(' ');
+      if (adpLast === sqLast && firstNamesMatch(sqFirst, adpFirst)) return entry.code;
+
+      // Also try reversed orientation ("last first")
+      const adpFirst2 = parts[parts.length - 1];
+      const adpLast2  = parts.slice(0, -1).join(' ');
+      if (adpLast2 === sqLast && firstNamesMatch(sqFirst, adpFirst2)) return entry.code;
+    }
+  }
+
+  // 3. Word-set match: every significant word from the Square name appears in the ADP key
+  const qWords = key1.split(' ').filter(w => w.length > 1);
+  if (qWords.length > 0) {
+    for (const entry of empCodesList) {
+      const kWords = entry.nameKey.split(' ');
+      if (qWords.every(w => kWords.includes(w))) return entry.code;
+    }
+  }
+
+  return null;
+}
+
+// Parse uploaded ADP codes file → [{nameKey, code}], filtered by selected location.
+function parseEmpCodesFromUpload(headers, rows, locationName) {
+  const byLocation = parseEmpCodeFile(headers, rows);
+  const locKeys    = Object.keys(byLocation).filter(k => k !== '_default');
+  const defaultMap = byLocation._default || {};
+
+  let codeMap;
+  if (locKeys.length === 0) {
+    // No location column — use everything
+    codeMap = defaultMap;
+  } else {
+    const matchedLoc = locKeys.find(k =>
+      k.toLowerCase() === (locationName || '').toLowerCase());
+    if (matchedLoc) {
+      // Prefer matched location, augmented with no-location rows
+      codeMap = Object.assign({}, defaultMap, byLocation[matchedLoc]);
+    } else {
+      // No match — merge all locations (user uploaded correct-entity file)
+      codeMap = Object.assign({}, defaultMap);
+      locKeys.forEach(loc => Object.assign(codeMap, byLocation[loc]));
+    }
+  }
+
+  return Object.entries(codeMap).map(([nameKey, code]) => ({ nameKey, code }));
+}
+
+// Parse "Last, First" (ADP format) → normalised "first last" key
 function empNameToKey(adpName) {
   const str = String(adpName || '').trim();
-  const ci = str.indexOf(',');
+  const ci  = str.indexOf(',');
   if (ci >= 0) {
     const last  = str.slice(0, ci).trim();
     const first = str.slice(ci + 1).trim();
     return normalizeName(first + ' ' + last);
   }
   return normalizeName(str);
-}
-
-// Look up ADP employee code by restaurant, location, and Square first/last name.
-// Returns the code string, or null if not found.
-function lookupEmpCode(restaurantName, locationName, firstName, lastName) {
-  const locMap = (EMP_CODE_OVERRIDES[restaurantName] || {})[locationName];
-  if (!locMap) return null;
-
-  const n1 = normalizeName(firstName + ' ' + lastName);
-  const n2 = normalizeName(lastName + ' ' + firstName);
-  if (locMap[n1]) return locMap[n1];
-  if (locMap[n2]) return locMap[n2];
-
-  // Partial match: all significant words in query appear in a key
-  const qWords = n1.split(' ').filter(w => w.length > 1);
-  if (qWords.length > 0) {
-    for (const [key, code] of Object.entries(locMap)) {
-      const kWords = key.split(' ');
-      if (qWords.every(w => kWords.includes(w))) return code;
-    }
-  }
-  return null;
 }
 
 const ADP_HEADERS = [
@@ -203,6 +250,7 @@ const state = {
   squareRows:   null,   // raw parsed Square CSV rows
   tipsHeaders:  null,   // column headers from tips file
   tipsRawRows:  null,   // raw row objects from tips file
+  empCodesList: null,   // [{nameKey, code}] from uploaded ADP codes file
   outputCsv:    null,
   outputName:   null
 };
@@ -213,7 +261,6 @@ const state = {
 document.addEventListener('DOMContentLoaded', () => {
   populateRestaurants();
   setupListeners();
-  adminInit();
 });
 
 function populateRestaurants() {
@@ -232,12 +279,14 @@ function setupListeners() {
   document.getElementById('weekStart').addEventListener('change',  onWeekStartChange);
   document.getElementById('squareFile').addEventListener('change', onSquareUpload);
   document.getElementById('tipsFile').addEventListener('change',   onTipsUpload);
+  document.getElementById('empCodesFile').addEventListener('change', onEmpCodesUpload);
   document.getElementById('processBtn').addEventListener('click',  onProcess);
   document.getElementById('downloadBtn').addEventListener('click', onDownload);
 
   // Drag-and-drop
-  setupDropZone('square-zone', 'squareFile', onSquareUpload);
-  setupDropZone('tips-zone',   'tipsFile',   onTipsUpload);
+  setupDropZone('square-zone',    'squareFile',   onSquareUpload);
+  setupDropZone('tips-zone',      'tipsFile',     onTipsUpload);
+  setupDropZone('emp-codes-zone', 'empCodesFile', onEmpCodesUpload);
 
   // Remove / clear buttons
   document.getElementById('square-remove').addEventListener('click', e => {
@@ -254,6 +303,13 @@ function setupListeners() {
     state.tipsHeaders = null;
     state.tipsRawRows = null;
     document.getElementById('tips-col-mapper').classList.add('hidden');
+    checkReady();
+  });
+  document.getElementById('emp-codes-remove').addEventListener('click', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    clearUpload('emp-codes-zone', 'empCodesFile', 'emp-codes-status');
+    state.empCodesList = null;
     checkReady();
   });
 }
@@ -273,7 +329,6 @@ function setupDropZone(zoneId, inputId, handler) {
     zone.classList.add('drag-over');
   });
   zone.addEventListener('dragleave', e => {
-    // only fire when leaving the zone itself (not a child element)
     if (!zone.contains(e.relatedTarget)) {
       zone.classList.remove('drag-over');
     }
@@ -283,7 +338,6 @@ function setupDropZone(zoneId, inputId, handler) {
     zone.classList.remove('drag-over');
     const file = e.dataTransfer.files[0];
     if (!file) return;
-    // Inject the file into the hidden input and fire the handler
     const input = document.getElementById(inputId);
     const dt = new DataTransfer();
     dt.items.add(file);
@@ -300,13 +354,10 @@ function clearUpload(zoneId, inputId, statusId) {
   const input  = document.getElementById(inputId);
   const status = document.getElementById(statusId);
 
-  // Reset file input
   input.value = '';
-  // Hide status bar
   status.style.display = 'none';
   status.textContent   = '';
   status.className     = 'file-status';
-  // Remove has-file class (also hides X button via CSS)
   zone.classList.remove('has-file');
 }
 
@@ -340,7 +391,6 @@ function onRestaurantChange() {
     locSel.disabled = false;
     locGroup.style.display = '';
   } else {
-    // No sub-locations — hide the location picker
     locGroup.style.display = 'none';
     state.location = { name: rest.name, adpIid: rest.adpIid || '' };
   }
@@ -360,7 +410,7 @@ function onLocationChange() {
 // DATE HANDLER
 // ================================================================
 function onWeekStartChange() {
-  const val  = document.getElementById('weekStart').value;
+  const val   = document.getElementById('weekStart').value;
   const errEl = document.getElementById('date-error');
   const endGrp = document.getElementById('week-end-display');
   const endEl  = document.getElementById('weekEndDate');
@@ -381,7 +431,7 @@ function onWeekStartChange() {
   }
 
   state.weekStart = d;
-  state.weekEnd   = addDays(d, 6);   // that Sunday
+  state.weekEnd   = addDays(d, 6);
 
   endEl.textContent    = formatDate(state.weekEnd);
   endGrp.style.display = '';
@@ -404,7 +454,6 @@ function onSquareUpload(e) {
       const rows = parseSquareCsv(ev.target.result);
       state.squareRows = rows;
 
-      // Detect how many unique locations are in the file
       const locs = [...new Set(rows.map(r => (r['Location'] || '').trim()).filter(Boolean))];
       const locNote = locs.length > 1
         ? ` ⚠ Multiple locations found: ${locs.join(', ')}`
@@ -427,8 +476,8 @@ function onTipsUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  state.tipsHeaders  = null;
-  state.tipsRawRows  = null;
+  state.tipsHeaders = null;
+  state.tipsRawRows = null;
   setFileStatus('tips-status', 'Reading…', 'loading');
 
   const ext = (file.name.split('.').pop() || '').toLowerCase();
@@ -471,6 +520,58 @@ function onTipsUpload(e) {
   }
 }
 
+function onEmpCodesUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  state.empCodesList = null;
+  setFileStatus('emp-codes-status', 'Reading…', 'loading');
+
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  const locationName = state.location ? state.location.name : '';
+
+  const finish = (headers, rows, err) => {
+    if (err) {
+      setFileStatus('emp-codes-status', '✗ ' + err, 'error');
+      checkReady();
+      return;
+    }
+    try {
+      const list = parseEmpCodesFromUpload(headers, rows, locationName);
+      state.empCodesList = list;
+      document.getElementById('emp-codes-zone').classList.add('has-file');
+      setFileStatus('emp-codes-status', `✓ ${file.name} — ${list.length} employee codes loaded`, 'success');
+    } catch (err) {
+      setFileStatus('emp-codes-status', '✗ ' + err.message, 'error');
+      state.empCodesList = null;
+    }
+    checkReady();
+  };
+
+  if (ext === 'csv') {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const { headers, rows } = parseFlatCsv(ev.target.result);
+        finish(headers, rows, null);
+      } catch (err) { finish(null, null, err.message); }
+    };
+    reader.readAsText(file);
+  } else if (ext === 'xlsx' || ext === 'xls') {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const { headers, rows } = parseFlatExcel(ev.target.result);
+        finish(headers, rows, null);
+      } catch (err) { finish(null, null, err.message); }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    setFileStatus('emp-codes-status', '✗ Unsupported format — use CSV or Excel (.xlsx)', 'error');
+    checkReady();
+  }
+}
+
 // ================================================================
 // TIPS COLUMN MAPPER UI
 // ================================================================
@@ -479,7 +580,6 @@ function populateColMapper(headers) {
   const nameSel = document.getElementById('col-name');
   const amtSel  = document.getElementById('col-amount');
 
-  // Build option list: first entry = "— not used —"
   const makeOpts = () => {
     const none = document.createElement('option');
     none.value = '';
@@ -504,16 +604,13 @@ function populateColMapper(headers) {
     addOpt(amtSel,  false);
   });
 
-  // Auto-select best guesses
   const lower = headers.map(h => String(h || '').toLowerCase().trim());
 
-  // Name col: prefer "name", then "employee", then first col
   const nameGuess = lower.findIndex(h => h === 'name' || h === 'employee name')
     ?? lower.findIndex(h => h.includes('name'));
   if (nameGuess >= 0) nameSel.value = nameGuess;
   else if (headers.length > 0) nameSel.value = 0;
 
-  // Amount col: prefer "total", "tips", "tip total"
   const amtGuess = (() => {
     const checks = [
       h => h === 'total tips' || h === 'tips total',
@@ -562,19 +659,17 @@ function onDownload() {
 // CORE DATA PROCESSING
 // ================================================================
 function processData() {
-  const { weekStart, weekEnd, squareRows, tipsHeaders, tipsRawRows, restaurant, location } = state;
+  const { weekStart, weekEnd, squareRows, tipsHeaders, tipsRawRows,
+          restaurant, location, empCodesList } = state;
 
   const adpIid = location
     ? (location.adpIid || '')
     : (restaurant ? (restaurant.adpIid || '') : '');
 
-  // ── 1. Use all Square rows as-is (user is responsible for uploading the correct week)
-  const weekRows = squareRows;
+  // ── 1. Aggregate per employee ─────────────────────────────────
+  const employees = aggregateEmployees(squareRows);
 
-  // ── 2. Aggregate per employee ───────────────────────────────
-  const employees = aggregateEmployees(weekRows);
-
-  // ── 3. Parse tips ──────────────────────────────────────────
+  // ── 2. Parse tips ─────────────────────────────────────────────
   let tipsMap   = {};
   let tipsTotal = 0;
   if (tipsHeaders && tipsRawRows) {
@@ -583,26 +678,27 @@ function processData() {
     ({ tipsMap, tipsTotal } = extractTipsFromRows(tipsHeaders, tipsRawRows, nameIdx, amtIdx));
   }
 
-  // ── 4. Generate ADP rows ────────────────────────────────────
+  // ── 3. Generate ADP rows ──────────────────────────────────────
   const isWestVillage = restaurant && restaurant.name === "L'industrie Pizzeria"
                      && location   && location.name   === 'West Village';
   const config = {
     adpIid,
-    payPeriodStart:  formatDate(weekStart),
-    payPeriodEnd:    formatDate(weekEnd),
-    spreadCode:      isWestVillage ? 'OTH' : 'OTH2',
-    restaurantName:  restaurant ? restaurant.name : '',
-    locationName:    location   ? location.name   : ''
+    payPeriodStart: formatDate(weekStart),
+    payPeriodEnd:   formatDate(weekEnd),
+    spreadCode:     isWestVillage ? 'OTH' : 'OTH2',
+    empCodesList:   empCodesList || []
   };
-  const { adpRows, matchedTips, unmatchedTipNames } = generateAdpRows(employees, tipsMap, config);
+  const { adpRows, matchedTips, unmatchedTipNames, unmatchedEmpNames } =
+    generateAdpRows(employees, tipsMap, config);
 
-  // ── 5. Validate ─────────────────────────────────────────────
-  const validation = buildValidation(employees, tipsMap, matchedTips, unmatchedTipNames);
+  // ── 4. Validate ───────────────────────────────────────────────
+  const validation = buildValidation(employees, tipsMap, matchedTips,
+    unmatchedTipNames, unmatchedEmpNames);
 
-  // ── 6. Build CSV ─────────────────────────────────────────────
+  // ── 5. Build CSV ──────────────────────────────────────────────
   const csv = generateCsv(adpRows);
 
-  // ── 7. Filename ──────────────────────────────────────────────
+  // ── 6. Filename ───────────────────────────────────────────────
   const locName  = location ? location.name : (restaurant ? restaurant.name : 'export');
   const dateSlug = [
     weekStart.getFullYear(),
@@ -626,7 +722,6 @@ function parseSquareCsv(text) {
   if (result.errors.length && result.data.length === 0) {
     throw new Error(result.errors[0].message);
   }
-  // Verify expected columns exist
   const fields = result.meta.fields || [];
   const required = ['Regular hours', 'Overtime hours', 'Spread of hours credit', 'Clockin date'];
   required.forEach(col => {
@@ -636,16 +731,15 @@ function parseSquareCsv(text) {
 }
 
 // ================================================================
-// PARSING — Tips file (CSV / Excel) — returns { headers, rows }
+// PARSING — Tips / Employee Codes (CSV / Excel) — returns { headers, rows }
 // ================================================================
 function parseFlatCsv(text) {
   const result = Papa.parse(text.trim(), {
     header:         false,
     skipEmptyLines: true
   });
-  if (result.data.length < 1) throw new Error('Tips CSV appears to be empty');
+  if (result.data.length < 1) throw new Error('CSV appears to be empty');
   const raw = result.data;
-  // First row → headers (as strings)
   const headers = raw[0].map(h => String(h || '').trim());
   const rows    = raw.slice(1).map(row => {
     const obj = {};
@@ -659,7 +753,7 @@ function parseFlatExcel(arrayBuffer) {
   const wb    = XLSX.read(arrayBuffer, { type: 'array' });
   const ws    = wb.Sheets[wb.SheetNames[0]];
   const raw   = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-  if (raw.length < 1) throw new Error('Tips Excel file appears to be empty');
+  if (raw.length < 1) throw new Error('Excel file appears to be empty');
   const headers = raw[0].map(h => String(h || '').trim());
   const rows    = raw.slice(1).map(row => {
     const obj = {};
@@ -693,38 +787,19 @@ function extractTipsFromRows(headers, rows, nameColIdx, amtColIdx) {
 }
 
 // ================================================================
-// WEEK FILTER
-// ================================================================
-function filterByWeek(rows, weekStart, weekEnd) {
-  const s = dateOnly(weekStart);
-  const e = dateOnly(weekEnd);
-
-  return rows.filter(row => {
-    const d = parseSquareDate(row['Clockin date']);
-    if (!d) return false;
-    const dOnly = dateOnly(d);
-    return dOnly >= s && dOnly <= e;
-  });
-}
-
-// ================================================================
 // AGGREGATE EMPLOYEES
 // ================================================================
 function aggregateEmployees(rows) {
   const map = {};
 
   rows.forEach(row => {
-    const empNum   = (row['Employee number'] || '').trim();
     const firstName = (row['First name'] || '').trim();
     const lastName  = (row['Last name']  || '').trim();
-
-    // Key: employee number (preferred) or normalised full name
-    const key = empNum || normalizeName(`${firstName} ${lastName}`);
+    const key = normalizeName(`${firstName} ${lastName}`);
     if (!key) return;
 
     if (!map[key]) {
       map[key] = {
-        employeeNumber: empNum,
         firstName,
         lastName,
         regularHours:  0,
@@ -746,28 +821,32 @@ function aggregateEmployees(rows) {
 // GENERATE ADP ROWS
 // ================================================================
 function generateAdpRows(employees, tipsMap, config) {
-  const { adpIid, payPeriodStart, payPeriodEnd, spreadCode, restaurantName, locationName } = config;
-  const adpRows        = [];
-  const matchedTips    = {};   // normalised name → amount matched
+  const { adpIid, payPeriodStart, payPeriodEnd, spreadCode, empCodesList } = config;
+  const adpRows           = [];
+  const matchedTips       = {};
   const unmatchedTipNames = new Set(Object.keys(tipsMap));
+  const unmatchedEmpNames = [];   // Square employees with no ADP code found
 
   Object.values(employees).forEach(emp => {
-    const codeFromMap = lookupEmpCode(restaurantName, locationName, emp.firstName, emp.lastName);
-    const empId = codeFromMap !== null ? codeFromMap : (emp.employeeNumber || '');
+    const empId = lookupEmpCodeFromList(empCodesList, emp.firstName, emp.lastName) || '';
 
-    // REG ──────────────────────────────────────────────────────
+    if (!empId) {
+      unmatchedEmpNames.push(`${emp.firstName} ${emp.lastName}`);
+    }
+
+    // REG
     if (emp.regularHours > 0) {
       adpRows.push(makeRow(adpIid, payPeriodStart, payPeriodEnd, empId, 'REG',
         fmt(emp.regularHours), ''));
     }
 
-    // OVT ──────────────────────────────────────────────────────
+    // OVT
     if (emp.overtimeHours > 0) {
       adpRows.push(makeRow(adpIid, payPeriodStart, payPeriodEnd, empId, 'OVT',
         fmt(emp.overtimeHours), ''));
     }
 
-    // CREDTIPP ─────────────────────────────────────────────────
+    // CREDTIPP
     const tipAmt = findTip(emp.firstName, emp.lastName, tipsMap);
     if (tipAmt !== null && tipAmt > 0) {
       adpRows.push(makeRow(adpIid, payPeriodStart, payPeriodEnd, empId, 'CREDTIPP',
@@ -780,14 +859,14 @@ function generateAdpRows(employees, tipsMap, config) {
       emp._matchedTip = tipAmt;
     }
 
-    // OTH2 / OTH — spread hours ───────────────────────────────
+    // OTH2 / OTH — spread hours
     if (emp.spreadCredits > 0) {
       adpRows.push(makeRow(adpIid, payPeriodStart, payPeriodEnd, empId, spreadCode,
         String(emp.spreadCredits), ''));
     }
   });
 
-  return { adpRows, matchedTips, unmatchedTipNames: [...unmatchedTipNames] };
+  return { adpRows, matchedTips, unmatchedTipNames: [...unmatchedTipNames], unmatchedEmpNames };
 }
 
 function makeRow(adpIid, start, end, empId, code, hours, dollars) {
@@ -816,7 +895,6 @@ function bestTipKey(firstName, lastName, tipsMap) {
     if (tipsMap[c] !== undefined) return c;
   }
 
-  // Fuzzy: any tips key that contains both name tokens
   if (fn && ln) {
     for (const key of Object.keys(tipsMap)) {
       if (key.includes(fn) && key.includes(ln)) return key;
@@ -828,21 +906,19 @@ function bestTipKey(firstName, lastName, tipsMap) {
 // ================================================================
 // VALIDATION
 // ================================================================
-function buildValidation(employees, tipsMap, matchedTips, unmatchedTipNames) {
+function buildValidation(employees, tipsMap, matchedTips, unmatchedTipNames, unmatchedEmpNames) {
   const warnings = [];
   const infos    = [];
 
-  // Employees without ADP employee numbers
-  const noId = Object.values(employees).filter(e => !e.employeeNumber);
-  if (noId.length > 0) {
+  // Employees not found in the ADP codes file
+  if (unmatchedEmpNames && unmatchedEmpNames.length > 0) {
     warnings.push({
-      text: `${noId.length} employee(s) are missing an Employee Number in Square — the Employee Id column in the output will be blank.`,
-      detail: noId.map(e => `${e.firstName} ${e.lastName}`).join(', ')
+      text: `${unmatchedEmpNames.length} employee(s) in the Square file could not be matched to any ADP employee code — the Employee Id column will be blank for:`,
+      detail: unmatchedEmpNames.join(', ')
     });
   }
 
-  // Tip validation — compare CREDTIPP output total against recognized employees only
-  // (avoids false mismatches from "Total" rows or unmatched names in the tips file)
+  // Tip validation
   if (Object.keys(tipsMap).length > 0) {
     const matchedCount = Object.keys(matchedTips).length;
     const matchedTotal = Object.values(matchedTips).reduce((s, v) => s + v, 0);
@@ -875,18 +951,13 @@ function buildValidation(employees, tipsMap, matchedTips, unmatchedTipNames) {
 function generateCsv(adpRows) {
   const lines = [];
 
-  // Row 1: ##GENERIC## V1.0 in A1, rest empty (11 fields total)
   lines.push('##GENERIC## V1.0,,,,,,,,,,');
-
-  // Row 2: column headers
   lines.push(ADP_HEADERS.join(','));
 
-  // Data rows
   adpRows.forEach(row => {
     lines.push(
       row.map(cell => {
         const s = (cell === null || cell === undefined) ? '' : String(cell);
-        // Wrap in double quotes if contains comma, quote, or newline
         return (s.includes(',') || s.includes('"') || s.includes('\n'))
           ? '"' + s.replace(/"/g, '""') + '"'
           : s;
@@ -913,7 +984,7 @@ function displayResults({ adpRows, employees, tipsTotal, validation }) {
     .filter(r => r[5] === 'OTH2' || r[5] === 'OTH')
     .reduce((s, r) => s + (parseFloat(r[6]) || 0), 0);
 
-  // ── Stats grid ──────────────────────────────────────────────
+  // ── Stats grid ───────────────────────────────────────────────
   const statsHtml = `
     <div class="stats-grid">
       <div class="stat-box"><div class="stat-num">${empCount.toLocaleString()}</div><div class="stat-label">Employees</div></div>
@@ -923,7 +994,7 @@ function displayResults({ adpRows, employees, tipsTotal, validation }) {
     </div>`;
   container.insertAdjacentHTML('beforeend', statsHtml);
 
-  // ── Info messages ───────────────────────────────────────────
+  // ── Info messages ─────────────────────────────────────────────
   if (validation.infos.length > 0) {
     const div = document.createElement('div');
     div.className = 'validation-list info';
@@ -935,7 +1006,7 @@ function displayResults({ adpRows, employees, tipsTotal, validation }) {
     container.appendChild(div);
   }
 
-  // ── Warnings ────────────────────────────────────────────────
+  // ── Warnings ──────────────────────────────────────────────────
   if (validation.warnings.length > 0) {
     const div = document.createElement('div');
     div.className = 'validation-list warnings';
@@ -956,7 +1027,7 @@ function displayResults({ adpRows, employees, tipsTotal, validation }) {
     container.appendChild(div);
   }
 
-  // ── Preview table (first 20 rows) ───────────────────────────
+  // ── Preview table (first 20 rows) ─────────────────────────────
   if (adpRows.length > 0) {
     const preview = adpRows.slice(0, 20);
     const wrapDiv = document.createElement('div');
@@ -976,7 +1047,7 @@ function displayResults({ adpRows, employees, tipsTotal, validation }) {
     preview.forEach(row => {
       const tr = document.createElement('tr');
       tr.innerHTML = row.map((cell, i) =>
-        i === 5  // Earnings Code column — monospace styled
+        i === 5
           ? `<td class="code-cell">${escHtml(cell)}</td>`
           : `<td>${escHtml(cell)}</td>`
       ).join('');
@@ -1005,6 +1076,7 @@ function isReady() {
   if (state.restaurant.locations && state.restaurant.locations.length > 0 && !state.location) return false;
   if (!state.weekStart) return false;
   if (!state.squareRows || state.squareRows.length === 0) return false;
+  if (!state.empCodesList || state.empCodesList.length === 0) return false;
   return true;
 }
 
@@ -1020,7 +1092,7 @@ function setFileStatus(id, text, type) {
 }
 
 function downloadFile(content, filename, mimeType) {
-  const bom  = '\uFEFF'; // UTF-8 BOM — helps Excel recognise encoding
+  const bom  = '\uFEFF';
   const blob = new Blob([bom + content], { type: mimeType });
   const url  = URL.createObjectURL(blob);
   const a    = Object.assign(document.createElement('a'), { href: url, download: filename });
@@ -1032,14 +1104,12 @@ function downloadFile(content, filename, mimeType) {
 
 // Date helpers
 function parseDateInput(str) {
-  // "2025-12-01" → local Date (avoids UTC-day shift)
   const [y, m, d] = str.split('-').map(Number);
   return new Date(y, m - 1, d);
 }
 
 function parseSquareDate(str) {
   if (!str) return null;
-  // Handles "12/1/25", "12/01/2025"
   const parts = str.trim().split('/');
   if (parts.length !== 3) return null;
   let [mon, day, yr] = parts.map(Number);
@@ -1048,7 +1118,6 @@ function parseSquareDate(str) {
 }
 
 function dateOnly(d) {
-  // Returns a comparable number YYYYMMDD
   return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
 }
 
@@ -1059,7 +1128,6 @@ function addDays(date, n) {
 }
 
 function formatDate(date) {
-  // M/D/YYYY — matches ADP expected format
   return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
 }
 
@@ -1078,7 +1146,6 @@ function round2(n) {
 }
 
 function fmt(n) {
-  // Format number to 2 dp, drop trailing zeros: 5.00 → "5", 5.50 → "5.5", 5.57 → "5.57"
   if (n === '' || n === null || n === undefined) return '';
   const num = parseFloat(n);
   if (isNaN(num) || num === 0) return '';
@@ -1094,133 +1161,10 @@ function escHtml(str) {
 }
 
 // ================================================================
-// ADMIN PANEL
+// ADP EMPLOYEE CODE FILE PARSER
+// Detects Employee, Code, and (optionally) Location columns.
+// Returns { [location|'_default']: { nameKey: code } }
 // ================================================================
-let adminParsedData = null;
-
-function adminInit() {
-  // Populate restaurant select in admin modal
-  const sel = document.getElementById('admin-restaurant');
-  RESTAURANTS.forEach(r => {
-    const o = document.createElement('option');
-    o.value = r.name;
-    o.textContent = r.name;
-    sel.appendChild(o);
-  });
-
-  document.getElementById('admin-trigger').addEventListener('click', () => {
-    document.getElementById('admin-pw-input').value = '';
-    document.getElementById('admin-pw-error').classList.add('hidden');
-    document.getElementById('admin-pw-overlay').classList.remove('hidden');
-    setTimeout(() => document.getElementById('admin-pw-input').focus(), 50);
-  });
-
-  document.getElementById('admin-pw-submit').addEventListener('click', adminCheckPassword);
-  document.getElementById('admin-pw-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') adminCheckPassword();
-  });
-  document.getElementById('admin-pw-cancel').addEventListener('click', () => {
-    document.getElementById('admin-pw-overlay').classList.add('hidden');
-  });
-
-  document.getElementById('admin-cancel-btn').addEventListener('click', adminClose);
-  document.getElementById('admin-save-btn').addEventListener('click', adminSave);
-  document.getElementById('admin-reset-btn').addEventListener('click', adminResetDefaults);
-  document.getElementById('admin-file').addEventListener('change', onAdminFileUpload);
-
-  // Close on overlay backdrop click
-  document.getElementById('admin-overlay').addEventListener('click', e => {
-    if (e.target === e.currentTarget) adminClose();
-  });
-  document.getElementById('admin-pw-overlay').addEventListener('click', e => {
-    if (e.target === e.currentTarget) document.getElementById('admin-pw-overlay').classList.add('hidden');
-  });
-}
-
-function adminCheckPassword() {
-  if (document.getElementById('admin-pw-input').value === 'adm1n') {
-    document.getElementById('admin-pw-overlay').classList.add('hidden');
-    adminOpen();
-  } else {
-    document.getElementById('admin-pw-error').classList.remove('hidden');
-    document.getElementById('admin-pw-input').select();
-  }
-}
-
-function adminOpen() {
-  adminParsedData = null;
-  document.getElementById('admin-parse-result').classList.add('hidden');
-  document.getElementById('admin-save-btn').disabled = true;
-  document.getElementById('admin-file').value = '';
-  document.getElementById('admin-file-name').textContent = 'No file chosen';
-  document.getElementById('admin-overlay').classList.remove('hidden');
-}
-
-function adminClose() {
-  document.getElementById('admin-overlay').classList.add('hidden');
-}
-
-function onAdminFileUpload(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  document.getElementById('admin-file-name').textContent = file.name;
-
-  const ext = file.name.split('.').pop().toLowerCase();
-
-  if (ext === 'csv') {
-    const reader = new FileReader();
-    reader.onload = ev => {
-      try {
-        const { headers, rows } = parseFlatCsv(ev.target.result);
-        adminProcessFile(file.name, headers, rows);
-      } catch (err) { adminShowParseError(err.message); }
-    };
-    reader.readAsText(file);
-  } else if (ext === 'xlsx' || ext === 'xls') {
-    const reader = new FileReader();
-    reader.onload = ev => {
-      try {
-        const { headers, rows } = parseFlatExcel(ev.target.result);
-        adminProcessFile(file.name, headers, rows);
-      } catch (err) { adminShowParseError(err.message); }
-    };
-    reader.readAsArrayBuffer(file);
-  } else {
-    adminShowParseError('Unsupported format — upload a CSV or Excel file.');
-  }
-  e.target.value = '';
-}
-
-function adminProcessFile(filename, headers, rows) {
-  try {
-    const restaurant = document.getElementById('admin-restaurant').value;
-    const byLocation = parseEmpCodeFile(headers, rows);
-
-    adminParsedData = { restaurant, byLocation };
-
-    const locs = Object.keys(byLocation).filter(k => k !== '_default');
-    const defCount = byLocation._default ? Object.keys(byLocation._default).length : 0;
-    let summary = '';
-    locs.forEach(loc => {
-      summary += `<p><strong>${escHtml(loc)}:</strong> ${Object.keys(byLocation[loc]).length} employees</p>`;
-    });
-    if (defCount > 0) {
-      summary += `<p><strong>No location column:</strong> ${defCount} employees (will apply to all locations)</p>`;
-    }
-
-    document.getElementById('admin-parse-result').innerHTML = `
-      <div class="admin-parse-ok">
-        <p class="admin-parse-title">&#10003; ${escHtml(filename)}</p>
-        ${summary}
-        <p class="admin-parse-note">Saves to <strong>${escHtml(restaurant)}</strong> and replaces existing codes for those locations.</p>
-      </div>`;
-    document.getElementById('admin-parse-result').classList.remove('hidden');
-    document.getElementById('admin-save-btn').disabled = false;
-  } catch (err) {
-    adminShowParseError(err.message);
-  }
-}
-
 function parseEmpCodeFile(headers, rows) {
   const lower = headers.map(h => h.toLowerCase());
 
@@ -1231,8 +1175,8 @@ function parseEmpCodeFile(headers, rows) {
     h.includes('code') && !h.includes('pay') && !h.includes('frequency'));
   const locColIdx  = lower.findIndex(h => h.includes('location'));
 
-  if (nameColIdx < 0) throw new Error('Could not find employee name column (expected header containing "Employee").');
-  if (codeColIdx < 0) throw new Error('Could not find employee code column (expected header containing "Code").');
+  if (nameColIdx < 0) throw new Error('Could not find employee name column (expected a header containing "Employee").');
+  if (codeColIdx < 0) throw new Error('Could not find employee code column (expected a header containing "Code").');
 
   const nameHeader = headers[nameColIdx];
   const codeHeader = headers[codeColIdx];
@@ -1256,56 +1200,4 @@ function parseEmpCodeFile(headers, rows) {
 
   if (Object.keys(result).length === 0) throw new Error('No valid employee rows found in the file.');
   return result;
-}
-
-function adminShowParseError(msg) {
-  document.getElementById('admin-parse-result').innerHTML =
-    `<div class="admin-parse-error">&#9888; ${escHtml(msg)}</div>`;
-  document.getElementById('admin-parse-result').classList.remove('hidden');
-  document.getElementById('admin-save-btn').disabled = true;
-  adminParsedData = null;
-}
-
-function adminSave() {
-  if (!adminParsedData) return;
-  const { restaurant, byLocation } = adminParsedData;
-
-  if (!EMP_CODE_OVERRIDES[restaurant]) EMP_CODE_OVERRIDES[restaurant] = {};
-
-  const defaultMap = byLocation._default || {};
-  const locKeys = Object.keys(byLocation).filter(k => k !== '_default');
-
-  if (locKeys.length > 0) {
-    // Apply each location's map, merged with any no-location rows
-    locKeys.forEach(loc => {
-      EMP_CODE_OVERRIDES[restaurant][loc] = Object.assign({}, defaultMap, byLocation[loc]);
-    });
-  } else {
-    // No location column — apply to all known locations for this restaurant
-    const rest = RESTAURANTS.find(r => r.name === restaurant);
-    const targets = rest && rest.locations
-      ? rest.locations.map(l => l.name)
-      : ['_default'];
-    targets.forEach(loc => {
-      EMP_CODE_OVERRIDES[restaurant][loc] = Object.assign({}, defaultMap);
-    });
-  }
-
-  try {
-    localStorage.setItem('adp_emp_codes', JSON.stringify(EMP_CODE_OVERRIDES));
-  } catch (err) {
-    alert('localStorage save failed: ' + err.message);
-    return;
-  }
-
-  adminClose();
-  alert(`Employee codes updated for ${restaurant}.`);
-}
-
-function adminResetDefaults() {
-  if (!confirm('Reset all employee code mappings to factory defaults?')) return;
-  EMP_CODE_OVERRIDES = buildDefaultEmpCodes();
-  try { localStorage.setItem('adp_emp_codes', JSON.stringify(EMP_CODE_OVERRIDES)); } catch (_) {}
-  adminClose();
-  alert('Employee code mappings reset to defaults.');
 }

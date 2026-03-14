@@ -110,7 +110,7 @@
             <button class="remove-file-btn" id="emp-codes-remove" aria-label="Remove file">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
-            <input type="file" id="empCodesFile" accept=".csv,.xlsx,.xls" hidden>
+            <input type="file" id="empCodesFile" accept=".csv,.xlsx,.xls,.pdf" hidden>
             <label for="empCodesFile" class="upload-label">
               <div class="upload-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -122,7 +122,7 @@
               </div>
               <div class="upload-title">ADP Employee Codes</div>
               <div class="upload-sub">Employee code report from ADP</div>
-              <div class="upload-sub" style="margin-top:4px; font-size:0.7rem">Drag &amp; drop or click to browse · .csv .xlsx</div>
+              <div class="upload-sub" style="margin-top:4px; font-size:0.7rem">Drag &amp; drop or click to browse · .csv .xlsx .pdf</div>
             </label>
             <div id="emp-codes-status" class="file-status" style="display:none"></div>
           </div>
@@ -178,6 +178,7 @@
   <!-- External libs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="app.js"></script>
 
 </body>

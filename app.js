@@ -552,7 +552,8 @@ function onEmpCodesUpload(e) {
     const reader = new FileReader();
     reader.onload = ev => {
       try {
-        const { headers, rows } = parseFlatCsv(ev.target.result);
+        const result = Papa.parse(ev.target.result.trim(), { header: false, skipEmptyLines: true });
+        const { headers, rows } = findAndParseHeaderedRows(result.data);
         finish(headers, rows, null);
       } catch (err) { finish(null, null, err.message); }
     };
@@ -561,15 +562,120 @@ function onEmpCodesUpload(e) {
     const reader = new FileReader();
     reader.onload = ev => {
       try {
-        const { headers, rows } = parseFlatExcel(ev.target.result);
+        const wb  = XLSX.read(ev.target.result, { type: 'array' });
+        const ws  = wb.Sheets[wb.SheetNames[0]];
+        const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        const { headers, rows } = findAndParseHeaderedRows(raw);
         finish(headers, rows, null);
       } catch (err) { finish(null, null, err.message); }
     };
     reader.readAsArrayBuffer(file);
+  } else if (ext === 'pdf') {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      parsePdfEmpCodes(ev.target.result)
+        .then(({ headers, rows }) => finish(headers, rows, null))
+        .catch(err => finish(null, null, err.message));
+    };
+    reader.readAsArrayBuffer(file);
   } else {
-    setFileStatus('emp-codes-status', '✗ Unsupported format — use CSV or Excel (.xlsx)', 'error');
+    setFileStatus('emp-codes-status', '✗ Unsupported format — use CSV, Excel (.xlsx), or PDF', 'error');
     checkReady();
   }
+}
+
+// ================================================================
+// EMPLOYEE CODES FILE HELPERS
+// ================================================================
+
+// Scan rows (array-of-arrays) for the first row that has a cell exactly
+// matching "Employee" — skips any report-title rows above it.
+function findAndParseHeaderedRows(rawRows) {
+  let headerIdx = -1;
+  for (let i = 0; i < rawRows.length; i++) {
+    const cells = rawRows[i].map(c => String(c || '').trim().toLowerCase());
+    if (cells.some(c => c === 'employee')) {
+      headerIdx = i;
+      break;
+    }
+  }
+  if (headerIdx < 0) {
+    throw new Error('Could not find employee name column (expected a header row with a cell exactly matching "Employee").');
+  }
+  const headers = rawRows[headerIdx].map(h => String(h || '').trim());
+  const rows = rawRows.slice(headerIdx + 1)
+    .filter(row => row.some(c => String(c || '').trim() !== ''))
+    .map(row => {
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = row[i] != null ? String(row[i]) : ''; });
+      return obj;
+    });
+  return { headers, rows };
+}
+
+// Parse an ADP Employee Codes PDF using PDF.js positional text extraction.
+// Finds lines that contain a "Last, First" name item and a numeric code item.
+async function parsePdfEmpCodes(arrayBuffer) {
+  if (typeof pdfjsLib === 'undefined') {
+    throw new Error('PDF support not loaded — please refresh the page and try again.');
+  }
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+  const allItems = [];
+
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    const page   = await pdf.getPage(pageNum);
+    const tc     = await page.getTextContent();
+    const height = page.getViewport({ scale: 1 }).height;
+
+    tc.items.forEach(item => {
+      if (!item.str.trim()) return;
+      allItems.push({
+        text: item.str.trim(),
+        x:    Math.round(item.transform[4]),
+        y:    Math.round(height - item.transform[5]),  // flip to top-down
+        page: pageNum
+      });
+    });
+  }
+
+  // Sort: page asc → y asc → x asc
+  allItems.sort((a, b) =>
+    a.page !== b.page ? a.page - b.page :
+    a.y    !== b.y    ? a.y    - b.y    : a.x - b.x
+  );
+
+  // Group items into lines by Y proximity (within 5 points = same line)
+  const lines = [];
+  for (const item of allItems) {
+    const last = lines[lines.length - 1];
+    if (!last || item.page !== last.page || Math.abs(item.y - last.refY) > 5) {
+      lines.push({ items: [item], refY: item.y, page: item.page });
+    } else {
+      last.items.push(item);
+    }
+  }
+
+  // Extract employee rows: lines with a "Last, First" item and a numeric code item.
+  // The NAME_RE covers accented/international characters common in staff names.
+  const NAME_RE = /^[\w\u00C0-\u024F][^,]+,[^,]+$/;
+  const rows    = [];
+
+  for (const line of lines) {
+    const nameItem = line.items.find(i => NAME_RE.test(i.text));
+    if (!nameItem) continue;
+    const codeItem = line.items.find(i => /^\d+$/.test(i.text.trim()));
+    if (!codeItem) continue;
+    rows.push({ 'Employee': nameItem.text, 'Employee Code': codeItem.text });
+  }
+
+  if (rows.length === 0) {
+    throw new Error('No employee records found in PDF. Expected rows with "Last, First" names and numeric employee codes.');
+  }
+
+  return { headers: ['Employee', 'Employee Code'], rows };
 }
 
 // ================================================================
